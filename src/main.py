@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import numpy as np
 
 # -----------------------------
 # Create MediaPipe hand detector
@@ -22,10 +23,9 @@ mp_draw = mp.solutions.drawing_utils
 # Open webcam
 
 camera = cv2.VideoCapture(0)
-ret, frame = cap.read()
 
-canvas = np.zeros_like(frame)
-
+ret, frame = camera.read()
+canvas=np.zeros_like(frame)
 while True:
 
     success, frame = camera.read()
@@ -56,25 +56,48 @@ while True:
             mp_hands.HAND_CONNECTIONS
         )
 
-        # Get index finger tip
-        index_tip = hand_landmarks.landmark[8]
+            index_tip = hand_landmarks.landmark[8]
+            index_joint = hand_landmarks.landmark[6]
+            drawing_mode = False
 
-        h, w, _ = frame.shape
+            if index_tip.y < index_joint.y:
+                drawing_mode = True
 
-        x = int(index_tip.x * w)
-        y = int(index_tip.y * h)
+            h, w, _ = frame.shape
 
-        cv2.circle(frame, (x, y), 10, (255, 0, 0), -1)
+            x = int(index_tip.x * w)
+            y = int(index_tip.y * h)
 
-        if previous_x == 0 and previous_y == 0:
+            cv2.circle(frame, (x, y), 10, (255, 0, 0), -1)
+
+            if previous_x == 0 and previous_y == 0:
+                previous_x = x
+                previous_y = y
+
+            if drawing_mode:
+
+                if previous_x == 0 and previous_y == 0:
+                    previous_x = x
+                    previous_y = y
+
+                cv2.line(canvas,
+                            (previous_x, previous_y),
+                            (x, y),
+                            (255, 0, 255),
+                            5
+                        )
+
+                previous_x = x
+                previous_y = y
+
+            else:
+
+                previous_x = 0
+                previous_y = 0
+
             previous_x = x
             previous_y = y
-
-        cv2.line(frame, (previous_x, previous_y), (x, y), (255, 0, 255), 5)
-
-        previous_x = x
-        previous_y = y
-
+    frame = cv2.add(frame, canvas)
     cv2.imshow("AirCanvas AI", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
