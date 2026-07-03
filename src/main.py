@@ -13,7 +13,8 @@ hands = mp_hands.Hands(
     min_detection_confidence=0.7,
     min_tracking_confidence=0.7
 )
-
+previous_x = 0
+previous_y = 0
 # Drawing utility
 
 mp_draw = mp.solutions.drawing_utils
@@ -21,6 +22,9 @@ mp_draw = mp.solutions.drawing_utils
 # Open webcam
 
 camera = cv2.VideoCapture(0)
+ret, frame = cap.read()
+
+canvas = np.zeros_like(frame)
 
 while True:
 
@@ -42,18 +46,34 @@ while True:
     results = hands.process(rgb_frame)
 
     # If a hand exists
-
     if results.multi_hand_landmarks:
 
         for hand_landmarks in results.multi_hand_landmarks:
 
-            # Draw all landmarks
-
             mp_draw.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS
-            )
+            frame,
+            hand_landmarks,
+            mp_hands.HAND_CONNECTIONS
+        )
+
+        # Get index finger tip
+        index_tip = hand_landmarks.landmark[8]
+
+        h, w, _ = frame.shape
+
+        x = int(index_tip.x * w)
+        y = int(index_tip.y * h)
+
+        cv2.circle(frame, (x, y), 10, (255, 0, 0), -1)
+
+        if previous_x == 0 and previous_y == 0:
+            previous_x = x
+            previous_y = y
+
+        cv2.line(frame, (previous_x, previous_y), (x, y), (255, 0, 255), 5)
+
+        previous_x = x
+        previous_y = y
 
     cv2.imshow("AirCanvas AI", frame)
 
