@@ -144,7 +144,7 @@ while True:
 # SAVE BUTTON
 # ===========================
 
-                if (
+            if (
     y < HEADER_HEIGHT
     and 560 < x < 625
 ):
