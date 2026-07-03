@@ -27,6 +27,7 @@ camera = cv2.VideoCapture(0)
 
 ret, frame = camera.read()
 canvas=np.zeros_like(frame)
+current_color = (255, 0, 255)
 while True:
 
     success, frame = camera.read()
@@ -92,6 +93,25 @@ while True:
 
             x = int(index_tip.x * w)
             y = int(index_tip.y * h)
+            if y < 60:
+
+                if x < 80:
+                    current_color = (255,0,255)
+
+                elif x < 160:
+                    current_color = (255,0,0)
+
+                elif x < 240:
+                    current_color = (0,255,0)
+
+                elif x < 320:
+                    current_color = (0,255,255)
+
+                else:
+                    current_color = (0,0,255)
+
+                previous_x = 0
+                previous_y = 0
 
             cv2.circle(frame, (x, y), 10, (255, 0, 0), -1)
 
@@ -119,7 +139,7 @@ while True:
         canvas,
         (previous_x, previous_y),
         (x, y),
-        (255,0,255),
+        current_color,
         8
     )
 
@@ -160,6 +180,15 @@ while True:
                     previous_x = 0
                     previous_y = 0  
     frame = cv2.add(frame, canvas)
+    cv2.rectangle(frame, (0,0), (80,60), (255,0,255), -1)
+
+    cv2.rectangle(frame, (80,0), (160,60), (255,0,0), -1)
+
+    cv2.rectangle(frame, (160,0), (240,60), (0,255,0), -1)
+
+    cv2.rectangle(frame, (240,0), (320,60), (0,255,255), -1)
+
+    cv2.rectangle(frame, (320,0), (400,60), (0,0,255), -1)
     cv2.imshow("AirCanvas AI", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
