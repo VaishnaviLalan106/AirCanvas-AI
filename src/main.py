@@ -1,28 +1,64 @@
 import cv2
+import mediapipe as mp
 
-# Open the default webcam
+# -----------------------------
+# Create MediaPipe hand detector
+# -----------------------------
+
+mp_hands = mp.solutions.hands
+
+hands = mp_hands.Hands(
+    static_image_mode=False,
+    max_num_hands=1,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.7
+)
+
+# Drawing utility
+
+mp_draw = mp.solutions.drawing_utils
+
+# Open webcam
+
 camera = cv2.VideoCapture(0)
 
-# Keep showing frames until user exits
 while True:
 
-    # Capture one frame
     success, frame = camera.read()
 
-    # If camera fails
     if not success:
-        print("Couldn't access camera.")
         break
 
-    # Show the frame
+    # Mirror the webcam
+
+    frame = cv2.flip(frame, 1)
+
+    # Convert BGR to RGB
+
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # Detect hands
+
+    results = hands.process(rgb_frame)
+
+    # If a hand exists
+
+    if results.multi_hand_landmarks:
+
+        for hand_landmarks in results.multi_hand_landmarks:
+
+            # Draw all landmarks
+
+            mp_draw.draw_landmarks(
+                frame,
+                hand_landmarks,
+                mp_hands.HAND_CONNECTIONS
+            )
+
     cv2.imshow("AirCanvas AI", frame)
 
-    # Press Q to quit
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
-# Release camera
 camera.release()
-
-# Close all windows
 cv2.destroyAllWindows()
