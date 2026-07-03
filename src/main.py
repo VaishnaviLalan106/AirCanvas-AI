@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import os
 
 # -----------------------------
 # Create MediaPipe hand detector
@@ -17,6 +18,7 @@ hands = mp_hands.Hands(
 previous_x = 0
 previous_y = 0
 lost_frames = 0
+button_delay = 0
 # Drawing utility
 
 mp_draw = mp.solutions.drawing_utils
@@ -28,6 +30,10 @@ camera = cv2.VideoCapture(0)
 ret, frame = camera.read()
 canvas=np.zeros_like(frame)
 current_color = (255, 0, 255)
+# Create drawings folder if it doesn't exist
+os.makedirs("drawings", exist_ok=True)
+
+save_count = 1
 while True:
 
     success, frame = camera.read()
@@ -57,7 +63,7 @@ while True:
             hand_landmarks,
             mp_hands.HAND_CONNECTIONS
         )
-
+            
             index_tip = hand_landmarks.landmark[8]
             index_joint = hand_landmarks.landmark[6]
             middle_tip = hand_landmarks.landmark[12]
@@ -93,26 +99,67 @@ while True:
 
             x = int(index_tip.x * w)
             y = int(index_tip.y * h)
-            if y < 60:
+            # ===========================
+# Color Selection
+# ===========================
 
-                if x < 80:
-                    current_color = (255,0,255)
+            if y < HEADER_HEIGHT:
 
-                elif x < 160:
-                    current_color = (255,0,0)
+                color_positions = [
+        (250, (255,0,255)),
+        (292, (255,140,0)),
+        (334, (0,200,0)),
+        (376, (0,220,255)),
+        (418, (0,0,255))
+    ]
 
-                elif x < 240:
-                    current_color = (0,255,0)
+                for cx, color in color_positions:
 
-                elif x < 320:
-                    current_color = (0,255,255)
+                    if abs(x - cx) < 18:
 
-                else:
-                    current_color = (0,0,255)
+                        current_color = color
+
+                        previous_x = 0
+                        previous_y = 0
+
+                        break
+            # ===========================
+# CLEAR BUTTON
+# ===========================
+
+            if (
+    y < HEADER_HEIGHT
+    and 500 < x < 590
+            ):
+
+                if button_delay == 0:
+
+                    canvas[:] = 0
+
+                    button_delay = 20
 
                 previous_x = 0
                 previous_y = 0
+            # ===========================
+# SAVE BUTTON
+# ===========================
 
+                if (
+    y < HEADER_HEIGHT
+    and 560 < x < 625
+):
+
+                    if button_delay == 0:
+
+                        filename = f"drawings/drawing_{save_count}.png"
+
+                        cv2.imwrite(filename, canvas)
+
+                        print("Saved:", filename)
+
+                        save_count += 1
+
+                        button_delay = 20
             cv2.circle(frame, (x, y), 10, (255, 0, 0), -1)
 
             if previous_x == 0 and previous_y == 0:
@@ -180,15 +227,130 @@ while True:
                     previous_x = 0
                     previous_y = 0  
     frame = cv2.add(frame, canvas)
-    cv2.rectangle(frame, (0,0), (80,60), (255,0,255), -1)
+# HEADER BACKGROUND
+    HEADER_HEIGHT = 70
 
-    cv2.rectangle(frame, (80,0), (160,60), (255,0,0), -1)
+    cv2.rectangle(
+    frame,
+    (0, 0),
+    (frame.shape[1], HEADER_HEIGHT),
+    (248, 248, 248),
+    -1
+)
 
-    cv2.rectangle(frame, (160,0), (240,60), (0,255,0), -1)
+    cv2.line(
+    frame,
+    (0, HEADER_HEIGHT),
+    (frame.shape[1], HEADER_HEIGHT),
+    (210, 210, 210),
+    2
+)
+    cv2.putText(
+    frame,
+    "AirCanvas AI",
+    (20, 42),
+    cv2.FONT_HERSHEY_DUPLEX,
+    0.9,
+    (45, 85, 180),
+    2
+)
+    # Color Palette
 
-    cv2.rectangle(frame, (240,0), (320,60), (0,255,255), -1)
+    colors = [
+    (255, 0, 255),
+    (255, 140, 0),
+    (0, 200, 0),
+    (0, 220, 255),
+    (0, 0, 255)
+]
 
-    cv2.rectangle(frame, (320,0), (400,60), (0,0,255), -1)
+    start_x = 250
+
+    start_x = 250
+
+    for color in colors:
+
+        cv2.circle(
+        frame,
+        (start_x,35),
+        14,
+        color,
+        -1
+    )
+
+        if color == current_color:
+
+            cv2.circle(
+            frame,
+            (start_x,35),
+            18,
+            (60,60,60),
+            3
+        )
+
+        else:
+
+            cv2.circle(
+            frame,
+            (start_x,35),
+            15,
+            (220,220,220),
+            2
+        )
+
+        start_x += 42
+    cv2.rectangle(
+    frame,
+    (500,15),
+    (590,55),
+    (235,235,235),
+    -1
+)
+
+    cv2.rectangle(
+    frame,
+    (480,15),
+    (545,55),
+    (170,170,170),
+    2
+)
+
+    cv2.putText(
+    frame,
+    "CLR",
+    (495,42),
+    cv2.FONT_HERSHEY_SIMPLEX,
+    0.6,
+    (80,80,80),
+    2
+) 
+    if button_delay > 0:
+        button_delay -= 1
+    cv2.rectangle(
+    frame,
+    (560,15),
+    (625,55),
+    (235,235,235),
+    -1
+)
+
+    cv2.rectangle(
+    frame,
+    (560,15),
+    (625,55),
+    (170,170,170),
+    2
+)
+
+    cv2.putText(
+    frame,
+    "SAVE",
+    (570,42),
+    cv2.FONT_HERSHEY_SIMPLEX,
+    0.45,
+    (80,80,80),
+    2
+)
     cv2.imshow("AirCanvas AI", frame)
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
